@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: ShellCheck
-        run: shellcheck skills/delegate-to-opencode/scripts/claude-opencode-worker install.sh uninstall.sh tests/*.sh bench/run.sh
+        run: shellcheck skills/delegate-to-kilo/scripts/claude-kilo-worker install.sh uninstall.sh tests/*.sh bench/run.sh
 
       - name: Worker tests
         run: ./tests/test-worker.sh
@@ -23,5 +23,5 @@ jobs:
           ./install.sh
           ./tests/test-install.sh
           ./uninstall.sh
-          test ! -e "$HOME/.claude/skills/delegate-to-opencode"
-          test ! -e "$HOME/.local/bin/claude-opencode-worker"
+          test ! -e "$HOME/.claude/skills/delegate-to-kilo"
+          test ! -e "$HOME/.local/bin/claude-kilo-worker"

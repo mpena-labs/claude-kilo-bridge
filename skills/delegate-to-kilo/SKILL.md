@@ -1,30 +1,30 @@
 ---
-name: delegate-to-opencode
+name: delegate-to-kilo
 description: >
   Use when the current main model is Opus or Fable (any model priced above
   Sonnet) and you are about to write a large
   amount of straightforward code yourself: a test suite for existing code,
   boilerplate that follows an existing file, new code across many files, or
-  read-only analysis that means reading many files. OpenCode
+  read-only analysis that means reading many files. Kilo
   writes it on a free model and you review the result, which costs far fewer
-  main-model tokens than writing it. After OpenCode finishes, the main session
+  main-model tokens than writing it. After Kilo finishes, the main session
   must review the resulting changes before considering the work complete. Do
   not use when the current model is Sonnet. Do not delegate small edits,
   architectural decisions, ambiguous requirements, security-sensitive work, or
   difficult debugging.
 license: MIT
 compatibility: >-
-  Built for Claude Code. Requires the opencode CLI, git and bash; python3 is
-  used to summarize OpenCode's output, and the worker still runs without it.
+  Built for Claude Code. Requires the kilo CLI, git and bash; python3 is
+  used to summarize Kilo's output, and the worker still runs without it.
 metadata:
   version: 1.13.0
 ---
 
-# Delegate to OpenCode
+# Delegate to Kilo
 
 The point is to spend fewer tokens of the main model (Opus or Fable). You pay for what you write and for
 every turn, because each turn re-reads your whole context. Delegating pays
-only when OpenCode writes much more than the delegation costs you:
+only when Kilo writes much more than the delegation costs you:
 
 - **Worth it:** you would otherwise write a lot of new code yourself (roughly
   150+ lines), and a command can check it (tests pass, build succeeds) or a
@@ -60,14 +60,14 @@ When you skip delegation for a mechanical task, say why in one line.
 Aim for exactly one Bash call after loading this skill. Each extra turn costs
 roughly as much as writing a few hundred tokens of code.
 
-1. **Do not read the code first.** OpenCode reads the project itself. Name the
+1. **Do not read the code first.** Kilo reads the project itself. Name the
    files; read something only if you need a fact for the task that you do not
    already have.
 2. **Run the worker once**, from the git repository to change, with the check
-   command in `OPENCODE_WORKER_CHECK` and the Bash tool timeout at 600000 ms:
+   command in `KILO_WORKER_CHECK` and the Bash tool timeout at 600000 ms:
 
    ```bash
-   OPENCODE_WORKER_CHECK='<test or build command>' bash <skill-base-dir>/scripts/claude-opencode-worker <<'TASK'
+   KILO_WORKER_CHECK='<test or build command>' bash <skill-base-dir>/scripts/claude-kilo-worker <<'TASK'
    Goal: <what must exist when done>
    Files: <files to change or create; existing files to copy the pattern from>
    Do not touch: <files or behaviour that must stay as they are>
@@ -83,7 +83,7 @@ roughly as much as writing a few hundred tokens of code.
    The worker's own limit is 570 s, to fit the foreground Bash limit. A task
    that writes code in more than two files, or adds tests and docs as well,
    usually takes longer: run it with `run_in_background: true` and
-   `OPENCODE_WORKER_TIMEOUT=1500` before the command, then wait for the
+   `KILO_WORKER_TIMEOUT=1500` before the command, then wait for the
    completion notice instead of polling.
 
    Pair every hard rule with a `Stop if`. Without one, a worker that cannot
@@ -91,14 +91,14 @@ roughly as much as writing a few hundred tokens of code.
    it stops and says why, which counts as a good run.
 
    Keep the task short: point at files instead of pasting them, and name only
-   facts OpenCode cannot find (columns, API shapes, exact strings). OpenCode
+   facts Kilo cannot find (columns, API shapes, exact strings). Kilo
    reads the project's `CLAUDE.md`/`AGENTS.md`, not your memory or this
    conversation.
 
-3. **Review from the report.** The worker prints OpenCode's answer, the
+3. **Review from the report.** The worker prints Kilo's answer, the
    diffstat, the diff itself when it is short (60 lines or less), and the
-   result of your check, which it runs after OpenCode finishes. Exit code `0`
-   means OpenCode finished and the check passed; anything else, see
+   result of your check, which it runs after Kilo finishes. Exit code `0`
+   means Kilo finished and the check passed; anything else, see
    [references/worker.md](references/worker.md).
    - Check passed and the diff is printed: skim it for the patterns in
      [references/review-checklist.md](references/review-checklist.md) and
@@ -108,15 +108,15 @@ roughly as much as writing a few hundred tokens of code.
      (`git diff <baseline> -- <file>` on the files that carry logic, or `grep`
      for risky patterns), not a full read of every file.
    - Something is wrong: fix it yourself if small; otherwise resume the same
-     OpenCode session with only the correction (see references/worker.md).
+     Kilo session with only the correction (see references/worker.md).
      After two correction rounds that still fail, finish it yourself.
 
-Do not trust OpenCode's claims; trust the check output and the diff. The
-review is yours, not OpenCode's.
+Do not trust Kilo's claims; trust the check output and the diff. The
+review is yours, not Kilo's.
 
-## When OpenCode fails: Haiku before Sonnet
+## When Kilo fails: Haiku before Sonnet
 
-If OpenCode stops early, makes no changes, or fails twice on the same task,
+If Kilo stops early, makes no changes, or fails twice on the same task,
 hand the task to a subagent instead of writing it yourself, in this order:
 
 1. **Haiku** (Agent with `model: haiku`) for well-specified work: doc or page
@@ -127,17 +127,17 @@ hand the task to a subagent instead of writing it yourself, in this order:
    debugging.
 
 Give the subagent the same Goal / Files / Do not touch / Done when / Stop if
-as the OpenCode task, plus the check command, and ask for a short report.
+as the Kilo task, plus the check command, and ask for a short report.
 Say in one line which model got the task and why. Review its diff as you
-would OpenCode's. A file outside the checkout that OpenCode must read is
+would Kilo's. A file outside the checkout that Kilo must read is
 denied by the worker: copy it into the checkout first (untracked, removed
 before committing) instead of switching tools.
 
 ## Model
 
-Do not pass a model. OpenCode uses its own default, which the user controls.
+Do not pass a model. Kilo uses its own default, which the user controls.
 Only when the user asks for a specific model, set
-`OPENCODE_WORKER_MODEL=provider/model`. If the worker says it is unavailable,
+`KILO_WORKER_MODEL=provider/model`. If the worker says it is unavailable,
 tell the user instead of picking another.
 
 ## Limits
@@ -145,9 +145,9 @@ tell the user instead of picking another.
 The worker blocks, for delegated runs only: destructive git commands (commit,
 push, reset, clean, checkout, switch, restore, stash, rebase, merge),
 `rm -rf`, file access outside the project, and the user's extra deny
-patterns. Do not ask OpenCode to do any of these; do that step yourself after
+patterns. Do not ask Kilo to do any of these; do that step yourself after
 reviewing. Before you edit or commit, check that no worker is still running
-(`pgrep -fa claude-opencode-worker`), for example one started in the
+(`pgrep -fa claude-kilo-worker`), for example one started in the
 background; wait for it or stop it first. Do not commit unless the user asked. Do not reset, clean, checkout,
 or discard existing user changes.
 

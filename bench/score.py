@@ -31,7 +31,7 @@ for name in sorted(os.listdir(out)):
              for c in e["message"]["content"] if c.get("type") == "tool_use"]
     tools = ",".join(c["name"] + (f"({c['input'].get('skill')})" if c["name"] == "Skill" else "")
                      for c in calls)
-    delegated = any("claude-opencode-worker" in json.dumps(c.get("input", {})) for c in calls)
+    delegated = any("claude-kilo-worker" in json.dumps(c.get("input", {})) for c in calls)
     usage = next(iter(result["modelUsage"].values()))
     quality = subprocess.run([sys.executable, check, os.path.join(out, run)],
                              capture_output=True, text=True).stdout.strip()

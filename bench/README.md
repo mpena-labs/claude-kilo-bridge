@@ -10,7 +10,7 @@ bench/score.py textkit /tmp/bench-textkit      # re-score without re-running
 ```
 
 Conditions: `N` Opus alone, `A` skill available but not mentioned, `F` prompt
-asks for the skill, `C` prompt sent through `/delegate`. Install the bridge
+asks for the skill, `C` prompt sent through `/delegate-kilo`. Install the bridge
 first (`./install.sh`): sessions use the installed skill and command.
 
 Tasks, under `tasks/`:

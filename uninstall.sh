@@ -2,15 +2,15 @@
 
 set -euo pipefail
 
-TARGET_SKILL="$HOME/.claude/skills/delegate-to-opencode/SKILL.md"
-TARGET_WORKER="$HOME/.claude/skills/delegate-to-opencode/scripts/claude-opencode-worker"
-TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-opencode/references/review-checklist.md"
-TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-opencode/references/worker.md"
-TARGET_COMMAND="$HOME/.claude/commands/delegate.md"
-LEGACY_WORKER="$HOME/.local/bin/claude-opencode-worker"
+TARGET_SKILL="$HOME/.claude/skills/delegate-to-kilo/SKILL.md"
+TARGET_WORKER="$HOME/.claude/skills/delegate-to-kilo/scripts/claude-kilo-worker"
+TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-kilo/references/review-checklist.md"
+TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-kilo/references/worker.md"
+TARGET_COMMAND="$HOME/.claude/commands/delegate-kilo.md"
+LEGACY_WORKER="$HOME/.local/bin/claude-kilo-worker"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$HOME/.claude-opencode-bridge-backups/uninstall-$TIMESTAMP"
+BACKUP_DIR="$HOME/.claude-kilo-bridge-backups/uninstall-$TIMESTAMP"
 
 backup_if_exists() {
     local target="$1"

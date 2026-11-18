@@ -1,6 +1,6 @@
 # Review checklist for delegated work
 
-Use this on every diff OpenCode produces, before telling the user the task is
+Use this on every diff Kilo produces, before telling the user the task is
 done. Green tests are necessary, not sufficient: generated code fails in ways
 a passing gate does not show.
 
@@ -18,7 +18,7 @@ test run. A weakened test makes the run measure less than it did before.
 
 ## 2. Re-run the checks yourself
 
-OpenCode's "tests pass" is a claim. Run the project's real test, lint, type
+Kilo's "tests pass" is a claim. Run the project's real test, lint, type
 and build commands and read the output.
 
 - Migrations or schema changes: apply them on a local or scratch database
@@ -49,7 +49,7 @@ and build commands and read the output.
 ## 5. Decide
 
 - Everything holds: report to the user what changed and what you verified.
-- Something needs fixing: send only the correction to the same OpenCode
+- Something needs fixing: send only the correction to the same Kilo
   session (see "Fixing after review" in references/worker.md) and review again, or fix it
   yourself if it is small.
 - The fix needs a design decision or goes beyond the task: stop and ask the

@@ -3,21 +3,21 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_SKILL="$SCRIPT_DIR/skills/delegate-to-opencode/SKILL.md"
-SOURCE_WORKER="$SCRIPT_DIR/skills/delegate-to-opencode/scripts/claude-opencode-worker"
-SOURCE_CHECKLIST="$SCRIPT_DIR/skills/delegate-to-opencode/references/review-checklist.md"
-SOURCE_REFERENCE="$SCRIPT_DIR/skills/delegate-to-opencode/references/worker.md"
-SOURCE_COMMAND="$SCRIPT_DIR/commands/delegate.md"
+SOURCE_SKILL="$SCRIPT_DIR/skills/delegate-to-kilo/SKILL.md"
+SOURCE_WORKER="$SCRIPT_DIR/skills/delegate-to-kilo/scripts/claude-kilo-worker"
+SOURCE_CHECKLIST="$SCRIPT_DIR/skills/delegate-to-kilo/references/review-checklist.md"
+SOURCE_REFERENCE="$SCRIPT_DIR/skills/delegate-to-kilo/references/worker.md"
+SOURCE_COMMAND="$SCRIPT_DIR/commands/delegate-kilo.md"
 
-TARGET_SKILL="$HOME/.claude/skills/delegate-to-opencode/SKILL.md"
-TARGET_WORKER="$HOME/.claude/skills/delegate-to-opencode/scripts/claude-opencode-worker"
-TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-opencode/references/review-checklist.md"
-TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-opencode/references/worker.md"
-TARGET_COMMAND="$HOME/.claude/commands/delegate.md"
-LEGACY_WORKER="$HOME/.local/bin/claude-opencode-worker"
+TARGET_SKILL="$HOME/.claude/skills/delegate-to-kilo/SKILL.md"
+TARGET_WORKER="$HOME/.claude/skills/delegate-to-kilo/scripts/claude-kilo-worker"
+TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-kilo/references/review-checklist.md"
+TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-kilo/references/worker.md"
+TARGET_COMMAND="$HOME/.claude/commands/delegate-kilo.md"
+LEGACY_WORKER="$HOME/.local/bin/claude-kilo-worker"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$HOME/.claude-opencode-bridge-backups/$TIMESTAMP"
+BACKUP_DIR="$HOME/.claude-kilo-bridge-backups/$TIMESTAMP"
 
 backup_if_exists() {
     local target="$1"
@@ -50,18 +50,18 @@ if [[ -e "$LEGACY_WORKER" || -L "$LEGACY_WORKER" ]]; then
 fi
 
 echo
-echo "Installed Claude Code → OpenCode bridge."
+echo "Installed Claude Code → Kilo bridge."
 echo "Skill:  $TARGET_SKILL"
 echo "Worker: $TARGET_WORKER"
 echo "Checklist: $TARGET_CHECKLIST"
 echo "Reference: $TARGET_REFERENCE"
-echo "Command:   $TARGET_COMMAND (/delegate)"
+echo "Command:   $TARGET_COMMAND (/delegate-kilo)"
 if [[ -d "$BACKUP_DIR" ]]; then
     echo "Backup: $BACKUP_DIR"
 fi
 
 echo
-echo "Extra deny rules can go in ~/.config/claude-opencode-worker/deny (one shell glob per line)."
+echo "Extra deny rules can go in ~/.config/claude-kilo-worker/deny (one shell glob per line)."
 
 echo
 echo "Run tests with:"

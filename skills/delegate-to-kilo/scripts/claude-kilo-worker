@@ -3,21 +3,21 @@
 set -euo pipefail
 
 # Exit codes:
-#   0    OpenCode finished and no permission was auto-rejected
+#   0    Kilo finished and no permission was auto-rejected
 #   2    usage error, not inside a git repository, or a requested model that
-#        OpenCode does not offer
-#   3    OpenCode finished but a permission was denied or auto-rejected
-#   4    a read-only run (OPENCODE_WORKER_MODE=read) changed the working tree
+#        Kilo does not offer
+#   3    Kilo finished but a permission was denied or auto-rejected
+#   4    a read-only run (KILO_WORKER_MODE=read) changed the working tree
 #   5    a file changed inside a directory shared read-only through
-#        OPENCODE_WORKER_READ_DIRS
-#   6    the check command in OPENCODE_WORKER_CHECK failed
-#   124  OpenCode timed out; changes may be partial
-#   127  opencode not found
-#   other  OpenCode's own exit code
+#        KILO_WORKER_READ_DIRS
+#   6    the check command in KILO_WORKER_CHECK failed
+#   124  Kilo timed out; changes may be partial
+#   127  kilo not found
+#   other  Kilo's own exit code
 
 usage() {
-    echo "Usage: claude-opencode-worker <task>" >&2
-    echo "       claude-opencode-worker <<'TASK' ... TASK" >&2
+    echo "Usage: claude-kilo-worker <task>" >&2
+    echo "       claude-kilo-worker <<'TASK' ... TASK" >&2
 }
 
 # Prefer stdin so callers can pass the task through a quoted heredoc and avoid
@@ -40,10 +40,10 @@ PROJECT_DIR="$(pwd)"
 # Default stays below the 600s maximum of Claude Code's Bash tool, so the
 # worker reports its own timeout instead of being killed silently. Raise it
 # only when the caller runs the worker in the background.
-TIMEOUT="${OPENCODE_WORKER_TIMEOUT:-570}"
+TIMEOUT="${KILO_WORKER_TIMEOUT:-570}"
 
-if ! command -v opencode >/dev/null 2>&1; then
-    echo "ERROR: opencode was not found in PATH." >&2
+if ! command -v kilo >/dev/null 2>&1; then
+    echo "ERROR: kilo was not found in PATH." >&2
     exit 127
 fi
 
@@ -78,7 +78,7 @@ indent() {
 UNTRACKED_BEFORE="$(hash_untracked)"
 PREEXISTING="$(git -C "$PROJECT_DIR" status --porcelain)"
 
-# Enforced by OpenCode itself, and only for delegated runs. Patterns start with
+# Enforced by Kilo itself, and only for delegated runs. Patterns start with
 # "*" because command-rewriting plugins (e.g. rtk) turn "git commit" into
 # "rtk git commit" before permissions are evaluated.
 DENY_PATTERNS=(
@@ -98,8 +98,8 @@ DENY_PATTERNS=(
 
 # Extra project- or user-specific rules (e.g. "*supabase db reset*"), one
 # shell glob per line; blank lines and lines starting with # are ignored.
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/claude-opencode-worker"
-DENY_FILE="${OPENCODE_WORKER_DENY_FILE:-$CONFIG_DIR/deny}"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/claude-kilo-worker"
+DENY_FILE="${KILO_WORKER_DENY_FILE:-$CONFIG_DIR/deny}"
 if [[ -f "$DENY_FILE" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
         line="${line#"${line%%[![:space:]]*}"}"
@@ -120,24 +120,24 @@ for pattern in "${DENY_PATTERNS[@]}"; do
       \"$(json_escape "$pattern")\": \"deny\""
 done
 
-# Everything outside the project is denied except OpenCode's own scratch and
+# Everything outside the project is denied except Kilo's own scratch and
 # truncated-output directories, which it allows by default and needs to read
 # long command output.
 EXTERNAL_RULES='
       "*": "deny",
-      "/tmp/opencode/*": "allow",
-      "'"$(json_escape "${XDG_DATA_HOME:-$HOME/.local/share}")"'/opencode/tool-output/*": "allow"'
+      "/tmp/kilo/*": "allow",
+      "'"$(json_escape "${XDG_DATA_HOME:-$HOME/.local/share}")"'/kilo/tool-output/*": "allow"'
 
 # Directories outside the project that the task may read, so the caller can
 # point at a file instead of pasting it into the task. Colon-separated
 # absolute paths. Edits there are checked after the run (exit 5).
 READ_DIRS=()
-if [[ -n "${OPENCODE_WORKER_READ_DIRS:-}" ]]; then
-    IFS=: read -r -a _dirs <<< "$OPENCODE_WORKER_READ_DIRS"
+if [[ -n "${KILO_WORKER_READ_DIRS:-}" ]]; then
+    IFS=: read -r -a _dirs <<< "$KILO_WORKER_READ_DIRS"
     for dir in "${_dirs[@]}"; do
         [[ -z "$dir" ]] && continue
         if [[ "$dir" != /* || ! -d "$dir" ]]; then
-            echo "ERROR: OPENCODE_WORKER_READ_DIRS entry is not an existing absolute directory: $dir" >&2
+            echo "ERROR: KILO_WORKER_READ_DIRS entry is not an existing absolute directory: $dir" >&2
             exit 2
         fi
         dir="${dir%/}"
@@ -150,7 +150,6 @@ fi
 
 # shellcheck disable=SC2016
 DEFAULT_CONFIG='{
-  "$schema": "https://opencode.ai/config.json",
   "permission": {
     "external_directory": {'"$EXTERNAL_RULES"'
     },
@@ -159,19 +158,19 @@ DEFAULT_CONFIG='{
   }
 }'
 
-# Read-only runs use OpenCode's plan agent and keep bash to commands that only
+# Read-only runs use Kilo's plan agent and keep bash to commands that only
 # read. Bash stays enabled with an allowlist instead of being denied outright:
-# without the bash tool, OpenCode's free tier rejects the request. An allowed
+# without the bash tool, Kilo's free tier rejects the request. An allowed
 # command can still write through a redirect, so the tree is checked after the
 # run as well.
-MODE="${OPENCODE_WORKER_MODE:-edit}"
+MODE="${KILO_WORKER_MODE:-edit}"
 READ_ONLY_COMMANDS=(
     "git status" "git log" "git show" "git diff" "git blame" "git grep"
     "git ls-files" "ls" "cat" "head" "tail" "grep" "wc" "sort" "uniq"
 )
 case "$MODE" in
     edit)
-        AGENT=build
+        AGENT=code
         ;;
     read)
         AGENT=plan
@@ -188,7 +187,6 @@ case "$MODE" in
         done
         # shellcheck disable=SC2016
         DEFAULT_CONFIG='{
-  "$schema": "https://opencode.ai/config.json",
   "permission": {
     "external_directory": {'"$EXTERNAL_RULES"'
     },
@@ -199,38 +197,38 @@ case "$MODE" in
 }'
         ;;
     *)
-        echo "ERROR: OPENCODE_WORKER_MODE must be edit or read." >&2
+        echo "ERROR: KILO_WORKER_MODE must be edit or read." >&2
         exit 2
         ;;
 esac
 
-if [[ -n "${OPENCODE_CONFIG_CONTENT:-}" ]]; then
-    echo "WARNING: OPENCODE_CONFIG_CONTENT is already set; the worker's deny rules are not applied." >&2
+if [[ -n "${KILO_CONFIG_CONTENT:-}" ]]; then
+    echo "WARNING: KILO_CONFIG_CONTENT is already set; the worker's deny rules are not applied." >&2
 else
-    export OPENCODE_CONFIG_CONTENT="$DEFAULT_CONFIG"
+    export KILO_CONFIG_CONTENT="$DEFAULT_CONFIG"
 fi
 
 # Resuming the worker's own session lets a review send only the correction
 # instead of restating the whole task. The session id is pinned rather than
 # using --continue, which could pick up an unrelated interactive session.
-SESSION="${OPENCODE_WORKER_SESSION:-}"
+SESSION="${KILO_WORKER_SESSION:-}"
 if [[ -n "$SESSION" && ! "$SESSION" =~ ^ses_[A-Za-z0-9]+$ ]]; then
-    echo "ERROR: OPENCODE_WORKER_SESSION must be an OpenCode session id (ses_...)." >&2
+    echo "ERROR: KILO_WORKER_SESSION must be a Kilo session id (ses_...)." >&2
     exit 2
 fi
-# Without an explicit model OpenCode uses its own default; the worker only
+# Without an explicit model Kilo uses its own default; the worker only
 # passes one when the user asked for a specific model.
-MODEL="${OPENCODE_WORKER_MODEL:-}"
+MODEL="${KILO_WORKER_MODEL:-}"
 
 # Free models come and go; fail before dispatching instead of mid-run.
 if [[ -n "$MODEL" ]]; then
-    if AVAILABLE_MODELS="$(opencode models 2>/dev/null)"; then
+    if AVAILABLE_MODELS="$(kilo models 2>/dev/null)"; then
         if ! grep -Fxq -- "$MODEL" <<< "$AVAILABLE_MODELS"; then
-            echo "ERROR: model $MODEL is not available in OpenCode (see 'opencode models')." >&2
+            echo "ERROR: model $MODEL is not available in Kilo (see 'kilo models')." >&2
             exit 2
         fi
     else
-        echo "WARNING: could not list OpenCode models; $MODEL was not checked." >&2
+        echo "WARNING: could not list Kilo models; $MODEL was not checked." >&2
     fi
 fi
 
@@ -242,16 +240,16 @@ else
     LAST_MODEL="$(python3 -c '
 import json, os, sys
 try:
-    r = json.load(open(os.path.expanduser("~/.local/state/opencode/model.json")))["recent"][0]
+    r = json.load(open(os.path.expanduser("~/.local/state/kilo/model.json")))["recent"][0]
     print(r["providerID"] + "/" + r["modelID"])
 except Exception:
     pass
 ' 2>/dev/null || true)"
-    MODEL_LABEL="OpenCode default (last used: ${LAST_MODEL:-unknown})"
+    MODEL_LABEL="Kilo default (last used: ${LAST_MODEL:-unknown})"
 fi
 
 RUN_STAMP="$(date +%Y%m%dT%H%M%S)-$$-$RANDOM"
-RUN_TITLE="claude-opencode-worker $RUN_STAMP"
+RUN_TITLE="claude-kilo-worker $RUN_STAMP"
 
 READ_DIRS_NOTE=""
 if [[ ${#READ_DIRS[@]} -gt 0 ]]; then
@@ -275,8 +273,8 @@ $TASK"
 fi
 
 # The caller pays for every line printed here, so the report stays short:
-# OpenCode's own transcript goes to a log file, not to stdout.
-echo "=== OpenCode Worker === Mode: $MODE | Model: $MODEL_LABEL | Timeout: ${TIMEOUT}s"
+# Kilo's own transcript goes to a log file, not to stdout.
+echo "=== Kilo Worker === Mode: $MODE | Model: $MODEL_LABEL | Timeout: ${TIMEOUT}s"
 if [[ -n "$SESSION" ]]; then
     echo "Resuming session: $SESSION"
 fi
@@ -287,18 +285,7 @@ if [[ -n "$PREEXISTING" ]]; then
     [[ $PRE_COUNT -gt 15 ]] && echo "  ... and $((PRE_COUNT - 15)) more"
 fi
 
-# OpenCode 2 runs through a shared background service that never sees this
-# process's OPENCODE_CONFIG_CONTENT, so the deny rules above would silently not
-# apply. --standalone starts a private server that inherits the environment.
-# OpenCode 2 also dropped --dir and uses the current directory instead.
-OPENCODE_VERSION="$(opencode --version 2>/dev/null || true)"
-OPENCODE_MAJOR="$(sed -E 's/^[^0-9]*([0-9]+).*/\1/' <<< "$OPENCODE_VERSION")"
-ARGS=(run)
-if [[ "$OPENCODE_MAJOR" =~ ^[0-9]+$ && $OPENCODE_MAJOR -ge 2 ]]; then
-    ARGS+=(--standalone)
-else
-    ARGS+=(--dir "$PROJECT_DIR")
-fi
+ARGS=(run --dir "$PROJECT_DIR")
 ARGS+=(
     --agent "$AGENT"
     --format json
@@ -316,12 +303,12 @@ fi
 
 # Full transcript (JSON events) and stderr are kept for a week, for the rare
 # review that needs more than the summary.
-LOG_DIR="${OPENCODE_WORKER_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/claude-opencode-worker}"
+LOG_DIR="${KILO_WORKER_LOG_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/claude-kilo-worker}"
 mkdir -p "$LOG_DIR"
 find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -mtime +7 -delete 2>/dev/null || true
 LOG="$LOG_DIR/$RUN_STAMP.jsonl.log"
 ERR_LOG="$LOG_DIR/$RUN_STAMP.stderr.log"
-SUMMARY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/opencode-worker.XXXXXX")"
+SUMMARY_DIR="$(mktemp -d "${TMPDIR:-/tmp}/kilo-worker.XXXXXX")"
 trap 'rm -rf "$SUMMARY_DIR"' EXIT
 READ_DIRS_MARKER="$SUMMARY_DIR/marker"
 touch "$READ_DIRS_MARKER"
@@ -329,24 +316,24 @@ touch "$READ_DIRS_MARKER"
 rc=0
 cd "$PROJECT_DIR"
 if command -v timeout >/dev/null 2>&1; then
-    timeout -k 15 "$TIMEOUT" opencode "${ARGS[@]}" "$PROMPT" > "$LOG" 2> "$ERR_LOG" || rc=$?
+    timeout -k 15 "$TIMEOUT" kilo "${ARGS[@]}" "$PROMPT" > "$LOG" 2> "$ERR_LOG" || rc=$?
 else
-    opencode "${ARGS[@]}" "$PROMPT" > "$LOG" 2> "$ERR_LOG" || rc=$?
+    kilo "${ARGS[@]}" "$PROMPT" > "$LOG" 2> "$ERR_LOG" || rc=$?
 fi
 
 if [[ "$MODE" == read ]]; then
-    ANSWER_CHARS="${OPENCODE_WORKER_ANSWER_CHARS:-12000}"
+    ANSWER_CHARS="${KILO_WORKER_ANSWER_CHARS:-12000}"
 else
-    ANSWER_CHARS="${OPENCODE_WORKER_ANSWER_CHARS:-3000}"
+    ANSWER_CHARS="${KILO_WORKER_ANSWER_CHARS:-3000}"
 fi
 
-# Turns the JSON events into: OpenCode's final answer (capped), a one-line
+# Turns the JSON events into: Kilo's final answer (capped), a one-line
 # tool count, the failed tool calls, the denied ones, token usage and the
 # session id. Lines that are not JSON events are kept apart for the plain
 # text checks below.
 summarize_events() {
     LOG="$LOG" OUT="$SUMMARY_DIR" ANSWER_CHARS="$ANSWER_CHARS" \
-        VERBOSE="${OPENCODE_WORKER_VERBOSE:-}" python3 - <<'PYEOF'
+        VERBOSE="${KILO_WORKER_VERBOSE:-}" python3 - <<'PYEOF'
 import json, os
 from collections import Counter
 
@@ -397,7 +384,7 @@ for i, ev in enumerate(events):
         if state.get("status") == "error":
             err = str(state.get("error", ""))
             line = f"{name} {tool_target(state)}: {short(err)}"
-            # OpenCode 1 and 2 word deny and auto-reject errors differently.
+            # Kilo words deny and auto-reject errors differently.
             if any(m in err for m in ("rule which prevents", "auto-reject",
                                       "Permission denied:", "cannot ask the user for permission")):
                 denied.append(line)
@@ -417,14 +404,14 @@ if len(answer) > limit:
 lines = []
 if verbose:
     lines += ["--- Transcript ---", *transcript, "--- End of transcript ---"]
-lines += ["OpenCode answer:", answer or "(no text answer)"]
+lines += ["Kilo answer:", answer or "(no text answer)"]
 if tools:
     lines.append("Tools: " + ", ".join(f"{k} x{v}" for k, v in sorted(tools.items())))
 if failed:
     lines.append(f"Failed tool calls ({len(failed)}):")
     lines += ["  " + l for l in failed[:10]]
 if tokens:
-    lines.append("OpenCode tokens: " + ", ".join(f"{k} {v}" for k, v in tokens.items()))
+    lines.append("Kilo tokens: " + ", ".join(f"{k} {v}" for k, v in tokens.items()))
 with open(os.path.join(out, "report"), "w") as f:
     f.write("\n".join(lines) + "\n")
 with open(os.path.join(out, "denied"), "w") as f:
@@ -439,27 +426,27 @@ if command -v python3 >/dev/null 2>&1 && summarize_events 2>/dev/null; then
     if [[ -s "$SUMMARY_DIR/report" ]]; then
         cat "$SUMMARY_DIR/report"
     elif [[ -s "$SUMMARY_DIR/plain" ]]; then
-        # No JSON events at all (an old OpenCode, or a crash before the run).
-        echo "OpenCode output (last lines):"
+        # No JSON events at all (an old Kilo, or a crash before the run).
+        echo "Kilo output (last lines):"
         tail -n 40 "$SUMMARY_DIR/plain" | cut -c1-300
     fi
 else
     # Without python3 the events cannot be parsed: show the tail only.
-    echo "OpenCode output (last lines; python3 not available to summarize):"
+    echo "Kilo output (last lines; python3 not available to summarize):"
     tail -n 40 "$LOG" | cut -c1-300
     cp "$LOG" "$SUMMARY_DIR/plain"
 fi
 if [[ $rc -ne 0 && -s "$ERR_LOG" ]]; then
-    echo "OpenCode stderr (last lines):"
+    echo "Kilo stderr (last lines):"
     tail -n 15 "$ERR_LOG" | cut -c1-300
 fi
 echo "Full log: $LOG"
 
 # A new session is found again by its unique title, so a later review can
-# resume it with OPENCODE_WORKER_SESSION.
+# resume it with KILO_WORKER_SESSION.
 find_session_by_title() {
     local sessions
-    sessions="$(cd "$PROJECT_DIR" && timeout 20 opencode session list --format json -n 20 2>/dev/null)" || return 0
+    sessions="$(cd "$PROJECT_DIR" && timeout 20 kilo session list --format json -n 20 2>/dev/null)" || return 0
     RUN_TITLE="$RUN_TITLE" python3 -c '
 import json, os, sys
 try:
@@ -502,7 +489,7 @@ fi
 # Printing a small diff here saves the caller a separate turn to read it, and
 # every turn re-reads the caller's whole context. Larger diffs are left to a
 # targeted read.
-DIFF_LINES="${OPENCODE_WORKER_DIFF_LINES:-60}"
+DIFF_LINES="${KILO_WORKER_DIFF_LINES:-60}"
 if [[ "$MODE" == edit && "$DIFF_LINES" =~ ^[0-9]+$ && $DIFF_LINES -gt 0 ]]; then
     FULL_DIFF="$(
         if [[ -n "$BASELINE" ]]; then
@@ -522,7 +509,7 @@ if [[ "$MODE" == edit && "$DIFF_LINES" =~ ^[0-9]+$ && $DIFF_LINES -gt 0 ]]; then
             printf '%s\n' "$FULL_DIFF"
             echo "--- End of diff ---"
         else
-            echo "Diff is $FULL_DIFF_COUNT lines, over OPENCODE_WORKER_DIFF_LINES=$DIFF_LINES; not printed."
+            echo "Diff is $FULL_DIFF_COUNT lines, over KILO_WORKER_DIFF_LINES=$DIFF_LINES; not printed."
         fi
     fi
 fi
@@ -530,17 +517,17 @@ fi
 if [[ -n "$SESSION" ]]; then
     echo
     echo "Session: $SESSION"
-    echo "Send a correction with: OPENCODE_WORKER_SESSION=$SESSION bash $(realpath "$0" 2>/dev/null || echo "$0") <<'TASK'"
+    echo "Send a correction with: KILO_WORKER_SESSION=$SESSION bash $(realpath "$0" 2>/dev/null || echo "$0") <<'TASK'"
 fi
 
 if [[ $rc -eq 124 ]]; then
     echo >&2
-    echo "ERROR: OpenCode timed out after ${TIMEOUT}s. Changes may be partial." >&2
+    echo "ERROR: Kilo timed out after ${TIMEOUT}s. Changes may be partial." >&2
     exit 124
 fi
 
 # "auto-rejecting" comes from permissions set to ask; the other message comes
-# from the deny rules above (OpenCode 1; OpenCode 2 reports deny hits only in
+# from the deny rules above (Kilo 1; Kilo 2 reports deny hits only in
 # the JSON events, handled in summarize_events). Both leave the task possibly incomplete.
 # The deny message is matched only at the start of a line (after colour codes),
 # so file content that quotes it, e.g. in a printed diff, is not a hit.
@@ -550,7 +537,7 @@ PLAIN_REJECTED="$(cat "$SUMMARY_DIR/plain" "$ERR_LOG" 2>/dev/null | grep -a -E "
 REJECTED="$(printf '%s\n%s\n' "$REJECTED" "$PLAIN_REJECTED" | sed '/^$/d')"
 if [[ -n "$REJECTED" ]]; then
     echo >&2
-    echo "ERROR: OpenCode hit denied or auto-rejected permissions; the task may be incomplete:" >&2
+    echo "ERROR: Kilo hit denied or auto-rejected permissions; the task may be incomplete:" >&2
     indent <<< "$REJECTED" >&2
     [[ $rc -eq 0 ]] && rc=3
 fi
@@ -583,9 +570,9 @@ done
 # Running the caller's check here saves it a separate turn. It runs last, after
 # the change report, so files the check creates (caches, build output) are not
 # reported as the worker's changes.
-CHECK="${OPENCODE_WORKER_CHECK:-}"
+CHECK="${KILO_WORKER_CHECK:-}"
 if [[ -n "$CHECK" && "$MODE" == edit && $rc -ne 124 ]]; then
-    CHECK_TIMEOUT="${OPENCODE_WORKER_CHECK_TIMEOUT:-300}"
+    CHECK_TIMEOUT="${KILO_WORKER_CHECK_TIMEOUT:-300}"
     CHECK_OUT="$SUMMARY_DIR/check"
     check_rc=0
     if command -v timeout >/dev/null 2>&1; then

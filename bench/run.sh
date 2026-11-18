@@ -5,8 +5,8 @@
 # Conditions (default: N F C):
 #   N  Opus does it alone (prompt says not to delegate)
 #   A  natural: skill available, nothing said
-#   F  prompt asks for the delegate-to-opencode skill
-#   C  prompt is sent through the /delegate command
+#   F  prompt asks for the delegate-to-kilo skill
+#   C  prompt is sent through the /delegate-kilo command
 # Append a digit to repeat a condition, e.g. N1 N2 C1 C2.
 # Each session costs real Opus usage on the account running it.
 
@@ -40,10 +40,10 @@ for run in "${CONDITIONS[@]}"; do
 
     prompt="$(cat "$TASK_DIR/prompt.txt")"
     case "${run:0:1}" in
-        N) prompt+=$'\n\nDo it yourself; do not delegate to OpenCode.' ;;
+        N) prompt+=$'\n\nDo it yourself; do not delegate to Kilo.' ;;
         A) ;;
-        F) prompt+=$'\n\nUse the delegate-to-opencode skill for this.' ;;
-        C) prompt="/delegate $prompt" ;;
+        F) prompt+=$'\n\nUse the delegate-to-kilo skill for this.' ;;
+        C) prompt="/delegate-kilo $prompt" ;;
         *) echo "unknown condition: $run" >&2; exit 2 ;;
     esac
     printf '%s\n' "$prompt" > "$OUT/$run.prompt"

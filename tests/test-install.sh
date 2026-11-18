@@ -3,18 +3,18 @@
 set -euo pipefail
 
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-SOURCE_SKILL="$REPO_DIR/skills/delegate-to-opencode/SKILL.md"
-SOURCE_WORKER="$REPO_DIR/skills/delegate-to-opencode/scripts/claude-opencode-worker"
-SOURCE_CHECKLIST="$REPO_DIR/skills/delegate-to-opencode/references/review-checklist.md"
-SOURCE_REFERENCE="$REPO_DIR/skills/delegate-to-opencode/references/worker.md"
-SOURCE_COMMAND="$REPO_DIR/commands/delegate.md"
+SOURCE_SKILL="$REPO_DIR/skills/delegate-to-kilo/SKILL.md"
+SOURCE_WORKER="$REPO_DIR/skills/delegate-to-kilo/scripts/claude-kilo-worker"
+SOURCE_CHECKLIST="$REPO_DIR/skills/delegate-to-kilo/references/review-checklist.md"
+SOURCE_REFERENCE="$REPO_DIR/skills/delegate-to-kilo/references/worker.md"
+SOURCE_COMMAND="$REPO_DIR/commands/delegate-kilo.md"
 
-TARGET_SKILL="$HOME/.claude/skills/delegate-to-opencode/SKILL.md"
-TARGET_WORKER="$HOME/.claude/skills/delegate-to-opencode/scripts/claude-opencode-worker"
-TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-opencode/references/review-checklist.md"
-TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-opencode/references/worker.md"
-TARGET_COMMAND="$HOME/.claude/commands/delegate.md"
-LEGACY_WORKER="$HOME/.local/bin/claude-opencode-worker"
+TARGET_SKILL="$HOME/.claude/skills/delegate-to-kilo/SKILL.md"
+TARGET_WORKER="$HOME/.claude/skills/delegate-to-kilo/scripts/claude-kilo-worker"
+TARGET_CHECKLIST="$HOME/.claude/skills/delegate-to-kilo/references/review-checklist.md"
+TARGET_REFERENCE="$HOME/.claude/skills/delegate-to-kilo/references/worker.md"
+TARGET_COMMAND="$HOME/.claude/commands/delegate-kilo.md"
+LEGACY_WORKER="$HOME/.local/bin/claude-kilo-worker"
 
 fail() {
     echo "FAIL: $1" >&2
@@ -30,7 +30,7 @@ cmp -s "$SOURCE_SKILL" "$TARGET_SKILL" || fail "Installed skill differs from the
 cmp -s "$SOURCE_WORKER" "$TARGET_WORKER" || fail "Installed worker differs from the repository; run ./install.sh"
 cmp -s "$SOURCE_CHECKLIST" "$TARGET_CHECKLIST" || fail "Installed checklist differs from the repository; run ./install.sh"
 cmp -s "$SOURCE_REFERENCE" "$TARGET_REFERENCE" || fail "Installed reference differs from the repository; run ./install.sh"
-cmp -s "$SOURCE_COMMAND" "$TARGET_COMMAND" || fail "Installed /delegate command differs from the repository; run ./install.sh"
+cmp -s "$SOURCE_COMMAND" "$TARGET_COMMAND" || fail "Installed /delegate-kilo command differs from the repository; run ./install.sh"
 
 if [[ -e "$LEGACY_WORKER" || -L "$LEGACY_WORKER" ]]; then
     fail "Legacy worker still exists: $LEGACY_WORKER"
@@ -39,7 +39,7 @@ fi
 # Collapse whitespace so line wrapping in the YAML description does not matter.
 FLAT_SKILL="$(tr -s '[:space:]' ' ' < "$SOURCE_SKILL")"
 
-grep -Eq '^name: delegate-to-opencode$' "$SOURCE_SKILL" || fail "Skill name is missing"
+grep -Eq '^name: delegate-to-kilo$' "$SOURCE_SKILL" || fail "Skill name is missing"
 grep -Fq 'current main model is Opus' <<< "$FLAT_SKILL" || fail "Opus rule is missing"
 grep -Fq 'current model is Sonnet' <<< "$FLAT_SKILL" || fail "Sonnet rule is missing"
 
@@ -49,8 +49,8 @@ SKILL_VERSION="$(sed -n '/^metadata:/,/^---$/p' "$SOURCE_SKILL" | grep -E '^[[:s
 [[ "$SKILL_VERSION" == "$REPO_VERSION" ]] || fail "Skill version $SKILL_VERSION differs from VERSION $REPO_VERSION"
 
 echo "PASS: bridge files are installed and match the repository."
-if command -v opencode >/dev/null 2>&1; then
-    echo "OpenCode: $(opencode --version)"
+if command -v kilo >/dev/null 2>&1; then
+    echo "Kilo: $(kilo --version)"
 else
-    echo "NOTE: opencode is not currently in PATH."
+    echo "NOTE: kilo is not currently in PATH."
 fi

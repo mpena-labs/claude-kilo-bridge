@@ -1,30 +1,30 @@
-Claude Code → OpenCode Delegation Bridge
+Claude Code → Kilo Delegation Bridge
 
-Project version: 1.13.0
+Project version: 2.0.0
 Validated Claude Code version: 2.1.299
-Validated OpenCode version: 2.0.31 (1.x still supported)
-Validated delegated model: muse-spark-1.3-contributor-free
+Validated Kilo version: 7.8.27
+Delegated model: Kilo default
 
 Validated behavior:
-- Opus 5.5 session (fresh `claude -p`, skill not named in the prompt): automatic skill selection and delegation to OpenCode through the bundled worker, with the task in the Goal/Files/Done-when template and no model passed (OpenCode default used).
+Behaviors below were first validated with the OpenCode backend. With Kilo 7.8.27 so far: the stub test suite, shellcheck, a live edit run, and a live deny run.
+- Opus 5.5 session (fresh `claude -p`, skill not named in the prompt): automatic skill selection and delegation to Kilo through the bundled worker, with the task in the Goal/Files/Done-when template and no model passed (Kilo default used).
 - After delegation: the main Opus session checked the file itself and the diff against the worker's baseline, and did not commit.
 - Sonnet 5.5 session: no delegation; Claude Code performed the file write itself.
-- Worker: task passed on stdin reaches OpenCode literally; deny rules from OPENCODE_CONFIG_CONTENT (git, rm -rf, user deny file) block the command, including commands rewritten by the rtk plugin.
-- Worker: refuses to run outside git; reports only the changes made during the run; exits 3 when OpenCode hit a denied or auto-rejected permission (OpenCode itself exits 0).
-- OpenCode reads the project's CLAUDE.md.
-- Worker: a correction sent with OPENCODE_WORKER_SESSION resumes the same OpenCode session, which keeps the earlier context; the report shows only that round's changes.
-- Worker: uses OpenCode's default model; an explicit OPENCODE_WORKER_MODEL is refused before dispatch when missing from `opencode models`.
-- Worker read-only mode (OPENCODE_WORKER_MODE=read): OpenCode's plan agent answered a question about the worker with correct file:line citations and left the tree unchanged; a command outside the bash allowlist was denied and the model retried with an allowed one. With the same permissions and the build agent, a write through bash, a write to .opencode/plans/ and a new file were all denied.
-- Worker 1.8.0: with `--format json`, a real edit run (add a function and its test) reported in 982 characters: final answer, tool count, OpenCode tokens, diffstat and session; the transcript stayed in the log file.
-- OpenCode's free tier rejects a run whose bash tool is denied outright ("can only be used from within OpenCode"); an allowlist keeps the tool and works.
+- Worker: task passed on stdin reaches Kilo literally; deny rules from KILO_CONFIG_CONTENT (git, rm -rf, user deny file) block the command, including commands rewritten by the rtk plugin.
+- Worker: refuses to run outside git; reports only the changes made during the run; exits 3 when Kilo hit a denied or auto-rejected permission (Kilo itself exits 0).
+- Kilo reads the project's CLAUDE.md.
+- Worker: a correction sent with KILO_WORKER_SESSION resumes the same Kilo session, which keeps the earlier context; the report shows only that round's changes.
+- Worker: uses Kilo's default model; an explicit KILO_WORKER_MODEL is refused before dispatch when missing from `kilo models`.
+- Worker read-only mode (KILO_WORKER_MODE=read): Kilo's plan agent answered a question about the worker with correct file:line citations and left the tree unchanged; a command outside the bash allowlist was denied and the model retried with an allowed one. With the same permissions and the build agent, a write through bash, a write to .kilo/plans/ and a new file were all denied.
+- Worker 1.8.0: with `--format json`, a real edit run (add a function and its test) reported in 982 characters: final answer, tool count, Kilo tokens, diffstat and session; the transcript stayed in the log file.
 - skills CLI (`npx skills add`) discovers the skill and copies scripts/ with the executable bit.
-- Worker on OpenCode 2: runs with --standalone so deny rules from OPENCODE_CONFIG_CONTENT apply (the default background service ignores them); edit run, deny of git commit, session lookup by title and session resume all worked; deny hits (`Permission denied: shell`) and auto-rejects exit 3.
-- Worker 1.10.0 (OPENCODE_WORKER_CHECK, inline diff, short SKILL.md): delegated Opus sessions went skill -> one worker call -> one review command -> answer; a test-suite task cost about 30% less than Opus alone, a scriptable 12-module change cost the same.
-- /delegate command: textkit task delegated through `claude -p "/delegate ..."` cost $0.30 to $0.32 against $0.47 to $0.48 for Opus alone in the same batch, with 90 to 98 tests catching 9 to 10 of 10 planted bugs.
+- Worker on Kilo 7.8.27: KILO_CONFIG_CONTENT is merged into Kilo's config (kilo debug config) and a deny-file pattern blocked the command (exit 3); runs with --dir and the `code` agent (Kilo has no `build` agent and falls back silently); session lookup uses `kilo session list --format json -n`.
+- Worker 1.10.0 (KILO_WORKER_CHECK, inline diff, short SKILL.md): delegated Opus sessions went skill -> one worker call -> one review command -> answer; a test-suite task cost about 30% less than Opus alone, a scriptable 12-module change cost the same.
+- /delegate-kilo command: textkit task delegated through `claude -p "/delegate-kilo ..."` cost $0.30 to $0.32 against $0.47 to $0.48 for Opus alone in the same batch, with 90 to 98 tests catching 9 to 10 of 10 planted bugs.
 
 Installed paths:
-- ~/.claude/skills/delegate-to-opencode/SKILL.md
-- ~/.claude/skills/delegate-to-opencode/scripts/claude-opencode-worker
-- ~/.claude/skills/delegate-to-opencode/references/review-checklist.md
-- ~/.claude/skills/delegate-to-opencode/references/worker.md
-- ~/.claude/commands/delegate.md
+- ~/.claude/skills/delegate-to-kilo/SKILL.md
+- ~/.claude/skills/delegate-to-kilo/scripts/claude-kilo-worker
+- ~/.claude/skills/delegate-to-kilo/references/review-checklist.md
+- ~/.claude/skills/delegate-to-kilo/references/worker.md
+- ~/.claude/commands/delegate-kilo.md
